@@ -19,9 +19,22 @@ export class GameManager {
         this.addHandler(socket);
     }
 
+    // Added more rigid logic for user removal
     removeUser(socket: WebSocket) {
         this.users = this.users.filter(user => user !== socket);
-        // stop the game here because the user left ( will add reconnect logic in future)
+        const game = this.games.find(game => game.getPlayer1() === socket || game.getPlayer2() === socket);
+    
+        // logic to notify player that their opponent has left
+        if (game) {
+            const opponent = game.getPlayer1() === socket ? game.getPlayer2() : game.getPlayer1();
+            opponent.send(JSON.stringify({
+                type: "USER_DISCONNECTED",
+                payload: { message: "Your opponent has disconnected." }
+            }));
+    
+            // removing the game from the list
+            this.games = this.games.filter(g => g !== game);
+        }
     }
 
     private addHandler(socket: WebSocket) {
@@ -44,9 +57,11 @@ export class GameManager {
                 
                 const game = this.games.find(game => game.getPlayer1() === socket || game.getPlayer2() === socket);
                 if (game) {
-                    console.log("Make Move");
+                    console.log("Inside make move Move");
                     
-                    game.makeMove(socket, message.move);
+                    game.makeMove(socket, message.payload.move);
+                    console.log();
+                    
                 }
             }
         })
